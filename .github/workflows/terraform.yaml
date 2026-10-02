@@ -1,4 +1,4 @@
-name: 'Terraform Deploy with Federated Identity OIDC'
+name: Terraform Azure Deployment
 
 on:
   push:
@@ -6,44 +6,43 @@ on:
       - main
 
 permissions:
-  id-token: write # Required for requesting the JWT token from GitHub OIDC provider
-  contents: read  # Required to check out the code
+  id-token: write
+  contents: read
 
 jobs:
   terraform:
-    name: 'Terraform Apply'
     runs-on: ubuntu-latest
-    
-    env:
-      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
-      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
-      ARM_USE_OIDC: true
 
     steps:
-    # Check out the repository code
-    - name: Checkout
-      uses: actions/checkout@v4
 
-    # Log into Azure using Federated Identity Credentials
-    - name: Azure Login
-      uses: azure/login@v2
-      with:
-        client-id: ${{ vars.AZURE_CLIENT_ID }}
-        tenant-id: ${{ vars.AZURE_TENANT_ID }}
-        allow-no-subscriptions: true
+      # 1. Checkout Terraform code
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    # Install Terraform CLI
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      # 2. Login to Azure using OIDC
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-    # Initialize Terraform
-    - name: Terraform Init
-      run: terraform init
+      # 3. Install Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-    # Generate and show an execution plan
-    - name: Terraform Plan
-      run: terraform plan
+      # 4. Terraform Init
+      - name: Terraform Init
+        run: terraform init
 
-    # Apply the changes (creates the resource group)
-    - name: Terraform Apply
-      run: terraform apply -auto-approve
+      # 5. Terraform Validate
+      - name: Terraform Validate
+        run: terraform validate
+
+      # 6. Terraform Plan
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      # 7. Terraform Apply
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
