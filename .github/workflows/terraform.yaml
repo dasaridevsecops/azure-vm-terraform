@@ -1,4 +1,4 @@
-name: 'Terraform Deploy with OIDC'
+name: 'Terraform Deploy with Federated Identity OIDC'
 
 on:
   push:
