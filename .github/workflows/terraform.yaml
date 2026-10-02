@@ -1,0 +1,50 @@
+name: 'Terraform Deploy with OIDC'
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write # Required for requesting the JWT token from GitHub OIDC provider
+  contents: read  # Required to check out the code
+
+jobs:
+  terraform:
+    name: 'Terraform Apply'
+    runs-on: ubuntu-latest
+    
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: true
+
+    steps:
+    # Check out the repository code
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    # Log into Azure using Federated Identity Credentials
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ vars.AZURE_CLIENT_ID }}
+        tenant-id: ${{ vars.AZURE_TENANT_ID }}
+        subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+    # Install Terraform CLI
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+
+    # Initialize Terraform
+    - name: Terraform Init
+      run: terraform init
+
+    # Generate and show an execution plan
+    - name: Terraform Plan
+      run: terraform plan
+
+    # Apply the changes (creates the resource group)
+    - name: Terraform Apply
+      run: terraform apply -auto-approve
